@@ -1,6 +1,3 @@
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref } from 'firebase/database';
-
 const firebaseConfig = {
     apiKey: "AIzaSyDXJ29BxRS3wFU5Euwzw2_sWjUYB447sZw",
     authDomain: "chiikawa-gallery.firebaseapp.com",
@@ -11,8 +8,5 @@ const firebaseConfig = {
     appId: "1:166402212843:web:35053b68619abf48b4cfae",
     measurementId: "G-8NPYQTQR6P"
 };
-
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-
-export { database, ref };
+  
+  export default firebaseConfig;
