@@ -15,8 +15,9 @@ interface TweetData {
 
 const DisplayTweets: React.FC = () => {
   const [data, setData] = useState<TweetData[]>([]);
-  const [tagInput, setTagInput] = useState('');
-  const [selectedTweetId, setSelectedTweetId] = useState<string | null>(null);
+  const [tagInputs, setTagInputs] = useState<{ [tweetId: string]: string }>({});
+  const [selectedTweetIds, setSelectedTweetIds] = useState<string[]>([]);
+  const [bulkTagInput, setBulkTagInput] = useState('');
 
   useEffect(() => {
     const db = getDatabase();
@@ -37,46 +38,61 @@ const DisplayTweets: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (selectedTweetId) {
-      const db = getDatabase();
-      const tweetRef = ref(db, `tweets/${selectedTweetId}/tags`);
-      get(tweetRef).then((snapshot) => {
-        const tagsData = snapshot.val();
-        const tagsArray: string[] = tagsData ? Object.values(tagsData) : [];
-        setTagInput(tagsArray.join(', '));
-      });
-    }
-  }, [selectedTweetId]);
-
-  const handleTagInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setTagInput(event.target.value);
+  const handleCheckboxChange = (tweetId: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { checked } = event.target;
+    setSelectedTweetIds(prevSelectedTweetIds => {
+      if (checked) {
+        return [...prevSelectedTweetIds, tweetId];
+      } else {
+        return prevSelectedTweetIds.filter(id => id !== tweetId);
+      }
+    });
   };
 
-  const handleTagAdd = (tweetId: string) => {
-    const tags: string[] = tagInput.split(',').map(tag => tag.trim());
+  const handleTagInputChange = (tweetId: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    setTagInputs(prevTagInputs => ({ ...prevTagInputs, [tweetId]: event.target.value }));
+  };
+
+  const handleTagAdd = (tweetId: string, tags: string[]) => {
     const db = getDatabase();
     const tweetRef = ref(db, `tweets/${tweetId}/tags`);
     set(tweetRef, tags).then(() => {
-      // タグを追加した後にデータを更新して表示する
       setData(prevData => prevData.map(item => {
         if (item.id === tweetId) {
           return { ...item, tags };
         }
         return item;
       }));
-      setTagInput('');
-      setSelectedTweetId(null); // タグ追加が完了したらselectedTweetIdをリセットする
+      setTagInputs(prevTagInputs => {
+        const { [tweetId]: _, ...newTagInputs } = prevTagInputs;
+        return newTagInputs;
+      });
     }).catch(error => {
       console.error('Error adding tags:', error);
     });
   };
 
+  const handleMultipleTagAdd = () => {
+    const tags: string[] = bulkTagInput.split(',').map(tag => tag.trim());
+    selectedTweetIds.forEach(id => handleTagAdd(id, tags));
+    setBulkTagInput('');
+  };
+
+  const handleBulkTagInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setBulkTagInput(event.target.value);
+  };
+
   return (
     <div className="App">
       <h1>Tweets Data</h1>
+      <div>
+        <label>Tags for selected tweets (comma-separated):</label>
+        <input type="text" value={bulkTagInput} onChange={handleBulkTagInputChange} />
+        <button onClick={handleMultipleTagAdd}>Add Tags to Selected</button>
+      </div>
       {data.map((item: TweetData) => (
         <div key={item.id}>
+          <input type="checkbox" checked={selectedTweetIds.includes(item.id)} onChange={handleCheckboxChange(item.id)} />
           <h2>Tweet ID: {item.id}</h2>
           <p>Display name: {item['Display name']}</p>
           <p>Tweet Date: {item['Tweet date']}</p>
@@ -87,8 +103,8 @@ const DisplayTweets: React.FC = () => {
           <p>Likes: {item.Likes}</p>
           <div>
             <label>Tags (comma-separated):</label>
-            <input type="text" value={tagInput} onChange={handleTagInputChange} />
-            <button onClick={() => handleTagAdd(item.id)}>Add Tags</button>
+            <input type="text" value={tagInputs[item.id] || ''} onChange={handleTagInputChange(item.id)} />
+            <button onClick={() => handleTagAdd(item.id, tagInputs[item.id]?.split(',').map(tag => tag.trim()) || [])}>Add Tags</button>
           </div>
           {item.tags && (
             <div>
