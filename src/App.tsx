@@ -1,6 +1,6 @@
-import React from 'react';
-import DisplayTweets from './components/DisplayTweets';
-import './App.css';
+import React from 'react'
+import DisplayTweets from './components/DisplayTweets'
+import './App.css'
 
 const App: React.FC = () => {
   return (
@@ -12,7 +12,7 @@ const App: React.FC = () => {
         <DisplayTweets />
       </main>
     </div>
-  );
-};
+  )
+}
 
-export default App;
+export default App
